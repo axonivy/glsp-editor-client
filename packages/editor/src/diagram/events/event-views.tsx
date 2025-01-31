@@ -1,3 +1,4 @@
+/** @jsx svg */
 import { CircularNodeView, type RenderingContext, hiddenBoundingRect, svg } from '@eclipse-glsp/client';
 import { inject, injectable, optional } from 'inversify';
 import type { VNode } from 'snabbdom';
@@ -6,8 +7,6 @@ import { createExecutionBadge } from '../../execution/views';
 import { CustomIconToggleActionHandler } from '../../ui-tools/tool-bar/options/action-handler';
 import { getIconDecorator } from '../icon/views';
 import { EventNode } from '../model';
-
-const JSX = { createElement: svg };
 
 @injectable()
 export class EventNodeView extends CircularNodeView {

@@ -1,0 +1,44 @@
+.tool-bar-header .middle-buttons {
+  z-index: 10;
+}
+.tool-bar-header .middle-buttons .tool-bar-title-button {
+  min-width: 60px;
+}
+.tool-bar-header .tool-bar-button {
+  height: 30px;
+}
+.tool-bar-header .tool-bar-title-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.tool-bar-header .tool-bar-title-button > label {
+  font-size: 10px;
+  margin-bottom: 0.125rem;
+  color: var(--N900, var(--glsp-tool-border));
+}
+.tool-bar-header .tool-bar-title-button .tool-bar-button {
+  max-height: 24px;
+}
+.tool-bar-header .tool-bar-button i {
+  color: var(--body, --var(--glsp-tool-button));
+}
+.tool-bar-header .tool-bar-title-button .tool-bar-button i.ivy-chevron {
+  transform: rotate(90deg);
+}
+.tool-bar-header .tool-bar-button.clicked,
+.tool-bar-header .tool-bar-button:hover {
+  background: var(--glsp-tool-bar-button-active-bg);
+}
+
+@container toolbar (max-width: 650px) {
+  .tool-bar-header .middle-buttons .tool-bar-title-button:not(:first-child) {
+    display: none;
+  }
+}
+
+@container toolbar (max-width: 450px) {
+  .tool-bar-header .edit-buttons {
+    display: none;
+  }
+}

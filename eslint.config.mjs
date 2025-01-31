@@ -17,7 +17,13 @@ export default tseslint.config(
   {
     name: 'general',
     rules: {
-      '@typescript-eslint/no-namespace': 'off'
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          varsIgnorePattern: 'svg' // Ignore unused svg imports as needed for snabbdom VNodes to work
+        }
+      ]
     }
   },
   {

@@ -43,3 +43,4 @@ export * from './start-action/actions';
 export * from './accessibility/key-listener/global-keylistener-tool';
 
 export * from './ivy-glsp-jsonrpc-client';
+export * from './utils/react-ui-extension';

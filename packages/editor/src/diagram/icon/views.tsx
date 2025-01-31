@@ -1,3 +1,4 @@
+/** @jsx svg */
 import type { Bounds } from '@eclipse-glsp/client';
 import { svg } from '@eclipse-glsp/client';
 import type { VNode } from 'snabbdom';
@@ -6,8 +7,6 @@ import virtualize from 'sprotty/lib/lib/virtualize';
 import { IconStyle, resolveIcon } from './icons';
 import { ActivityTypes } from '../view-types';
 import type { ActivityNode } from '../model';
-
-const JSX = { createElement: svg };
 
 const WORKFLOW_ACTIVITY_TYPES = [
   ActivityTypes.USER,

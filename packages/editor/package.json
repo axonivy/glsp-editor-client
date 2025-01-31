@@ -19,9 +19,13 @@
   ],
   "dependencies": {
     "@axonivy/process-editor-protocol": "~13.1.0-next",
+    "@axonivy/process-editor-view": "~13.1.0-next",
+    "@axonivy/ui-components": "~13.1.0-next.451",
     "@eclipse-glsp/client": "2.3.0",
     "marked": "^15.0.6",
-    "toastify-js": "1.12.0"
+    "toastify-js": "1.12.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "peerDependencies": {
     "@axonivy/ui-icons": "~13.1.0-next"

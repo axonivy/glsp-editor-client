@@ -1,9 +1,10 @@
-import { Action, PaletteItem } from '@eclipse-glsp/client';
-import { type ToolBarButton, ToolBarButtonLocation, type ToolBarButtonProvider } from '../button';
-import { ShowToolBarMenuAction } from '../tool-bar-menu';
-import { injectable, inject } from 'inversify';
-import { ElementsPaletteHandler } from './action-handler';
 import { IvyIcons } from '@axonivy/ui-icons';
+import { Action, PaletteItem } from '@eclipse-glsp/client';
+import { inject, injectable } from 'inversify';
+import { ShowToolBarMenuAction } from '../tool-bar-menu';
+import { ElementsPaletteHandler } from './action-handler';
+import { ToolBarButtonLocation, type ToolBarButton } from '@axonivy/process-editor-view';
+import type { ToolBarButtonProvider } from '../button';
 
 @injectable()
 export abstract class CreateElementsButtonProvider implements ToolBarButtonProvider {

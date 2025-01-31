@@ -1,3 +1,4 @@
+/** @jsx svg */
 import {
   GArgument,
   RectangularNodeView,
@@ -12,8 +13,6 @@ import { injectable } from 'inversify';
 import type { VNode, VNodeStyle } from 'snabbdom';
 
 import { LaneNode } from '../model';
-
-const JSX = { createElement: svg };
 
 @injectable()
 export class LaneNodeView extends RectangularNodeView {
