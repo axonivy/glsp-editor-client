@@ -21,7 +21,9 @@
     "@axonivy/process-editor-protocol": "~13.1.0-next",
     "@eclipse-glsp/client": "2.3.0",
     "marked": "^15.0.6",
-    "toastify-js": "1.12.0"
+    "toastify-js": "1.12.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/lodash": "4.17.14",

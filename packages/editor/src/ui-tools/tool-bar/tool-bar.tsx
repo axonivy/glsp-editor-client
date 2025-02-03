@@ -1,8 +1,6 @@
 import {
-  GLSPAbstractUIExtension,
   Action,
   DisposableCollection,
-  EditorContextService,
   EnableDefaultToolsAction,
   EnableToolPaletteAction,
   IActionHandler,
@@ -36,16 +34,21 @@ import { ShowToolBarOptionsMenuAction } from './options/action';
 import { ToolBarOptionsMenu } from './options/options-menu-ui';
 import { ShowToolBarMenuAction, ToolBarMenu } from './tool-bar-menu';
 import { UpdatePaletteItems } from '@axonivy/process-editor-protocol';
+import { ReactUIExtension } from '../../utils/react-ui-extension';
+import { SModelRootImpl } from 'sprotty';
+import React from 'react';
+import IvyIcon from '../../utils/ui-components';
+
+const JSX = { createElement: React.createElement };
 
 const CLICKED_CSS_CLASS = 'clicked';
 
 @injectable()
-export class ToolBar extends GLSPAbstractUIExtension implements IActionHandler, IEditModeListener, ISelectionListener {
+export class ToolBar extends ReactUIExtension implements IActionHandler, IEditModeListener, ISelectionListener {
   static readonly ID = 'ivy-tool-bar';
 
   @inject(TYPES.IActionDispatcher) protected readonly actionDispatcher: IActionDispatcher;
   @inject(SelectionService) protected readonly selectionService: SelectionService;
-  @inject(EditorContextService) protected readonly editorContext: EditorContextService;
   @multiInject(IVY_TYPES.ToolBarButtonProvider) protected toolBarButtonProvider: ToolBarButtonProvider[];
 
   protected lastActivebutton?: HTMLElement;
@@ -72,18 +75,60 @@ export class ToolBar extends GLSPAbstractUIExtension implements IActionHandler, 
   }
 
   protected initializeContents(containerElement: HTMLElement) {
+    super.initializeContents(containerElement);
     this.createHeader();
     this.lastActivebutton = this.defaultToolsButton;
     containerElement.onwheel = ev => (ev.ctrlKey ? ev.preventDefault() : true);
   }
 
-  protected onBeforeShow() {
+  protected onBeforeShow(containerElement: HTMLElement, root: Readonly<SModelRootImpl>, ...contextElementIds: string[]): void {
+    super.onBeforeShow(containerElement, root, ...contextElementIds);
     this.toDisposeOnHide.push(this.selectionService.onSelectionChanged(() => this.selectionChanged()));
   }
 
   hide() {
     super.hide();
     this.toDisposeOnHide.dispose();
+  }
+
+  protected render(): React.ReactNode {
+    return (
+      <div className='tool-bar-header'>
+        <div className='left-buttons'>
+          <button className='tool-bar-button' onClick={() => this.dispatchAction([DefaultSelectButton.action()])}>
+            <IvyIcon icon={DefaultSelectButton.icon} />
+            <span>{DefaultSelectButton.title}</span>
+          </button>
+          <button className='tool-bar-button' onClick={() => this.dispatchAction([MarqueeToolButton.action()])}>
+            <IvyIcon icon={MarqueeToolButton.icon} />
+            <span>{MarqueeToolButton.title}</span>
+          </button>
+        </div>
+        <div className='middle-buttons'>
+          {this.toolBarButtonProvider
+            .map(provider => provider.button())
+            .filter(isNotUndefined)
+            .filter(button => button.location === ToolBarButtonLocation.Middle)
+            .filter(button => !this.editorContext.isReadonly || button.readonly)
+            .sort(compareButtons)
+            .map(button => (
+              <button
+                key={button.id}
+                className='tool-bar-button'
+                onClick={() => {
+                  this.dispatchAction([button.action()]);
+                  if (button.switchFocus) {
+                    this.changeActiveButton();
+                  }
+                }}
+              >
+                <IvyIcon icon={button.icon} />
+                <span>{button.title}</span>
+              </button>
+            ))}
+        </div>
+      </div>
+    );
   }
 
   protected createHeader(): void {
