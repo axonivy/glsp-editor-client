@@ -1,6 +1,6 @@
+import { ToolBarButtonLocation, type ToolBarButton } from '@axonivy/process-editor-view';
 import { IvyIcons } from '@axonivy/ui-icons';
 import {
-  Action,
   EnableDefaultToolsAction,
   EnableToolsAction,
   type IGridManager,
@@ -16,25 +16,6 @@ import { CustomIconToggleActionHandler } from './options/action-handler';
 
 export interface ToolBarButtonProvider {
   button(): ToolBarButton | undefined;
-}
-
-export enum ToolBarButtonLocation {
-  Left = 'left',
-  Middle = 'middle',
-  Right = 'right'
-}
-
-export interface ToolBarButton {
-  icon: IvyIcons;
-  title: string;
-  sorting: string;
-  action: () => Action;
-  location: ToolBarButtonLocation;
-  id?: string;
-  readonly?: boolean;
-  switchFocus?: boolean;
-  showTitle?: boolean;
-  isNotMenu?: boolean;
 }
 
 export function compareButtons(a: ToolBarButton, b: ToolBarButton): number {

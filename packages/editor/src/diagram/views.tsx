@@ -1,3 +1,4 @@
+/** @jsx svg */
 import {
   angleOfPoint,
   Bounds,
@@ -27,8 +28,6 @@ import { escapeHtmlWithLineBreaks } from './util';
 
 import { isLaneResizable, type LaneResizable } from '../lanes/model';
 import { ActivityTypes } from './view-types';
-
-const JSX = { createElement: svg };
 
 @injectable()
 export class ForeignLabelView implements IView {

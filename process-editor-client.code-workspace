@@ -2,15 +2,19 @@
   "folders": [
     {
       "name": "root",
-      "path": ".",
+      "path": "."
     },
     {
       "name": "packages/process-protocol",
-      "path": "./packages/protocol",
+      "path": "./packages/protocol"
     },
     {
       "name": "packages/process-editor",
-      "path": "./packages/editor",
+      "path": "./packages/editor"
+    },
+    {
+      "name": "packages/process-view",
+      "path": "./packages/view"
     },
     {
       "name": "packages/process-inscription",
@@ -85,6 +89,6 @@
     },
     "[yaml]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
+    }
   }
 }

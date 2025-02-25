@@ -5,7 +5,6 @@ import { JumpAction, MoveIntoViewportAction, SwitchThemeAction } from '@axonivy/
 import {
   Action,
   GArgument,
-  GLSPAbstractUIExtension,
   GModelRoot,
   type IActionHandler,
   ISelectionListener,
@@ -22,14 +21,14 @@ import type { MonacoLanguageClient } from 'monaco-languageclient';
 import { QueryClient } from '@tanstack/react-query';
 import { inject, injectable, postConstruct } from 'inversify';
 
-import { type Root, createRoot } from 'react-dom/client';
 import { OpenAction } from 'sprotty-protocol';
 import InscriptionView from './InscriptionView';
 import { EnableInscriptionAction, ToggleInscriptionAction } from './action';
 import * as React from 'react';
+import { ReactUIExtension } from '@axonivy/process-editor';
 
 @injectable()
-export class InscriptionUi extends GLSPAbstractUIExtension implements IActionHandler, ISelectionListener {
+export class InscriptionUi extends ReactUIExtension implements IActionHandler, ISelectionListener {
   static readonly ID = 'inscription-ui';
 
   @inject(SelectionService) protected readonly selectionService: SelectionService;
@@ -38,8 +37,8 @@ export class InscriptionUi extends GLSPAbstractUIExtension implements IActionHan
   private inscriptionElement?: string;
   private action?: EnableInscriptionAction;
   private inscriptionContext: InscriptionContext;
-  private root: Root;
   private inscriptionClient?: Promise<InscriptionClientJsonRpc>;
+  private resolvedInscriptionClient?: InscriptionClientJsonRpc;
   private queryClient: QueryClient;
 
   public id(): string {
@@ -55,38 +54,43 @@ export class InscriptionUi extends GLSPAbstractUIExtension implements IActionHan
     return 'inscription-ui-container';
   }
 
+  protected resolveInscriptionClient(client: InscriptionClientJsonRpc) {
+    this.resolvedInscriptionClient = client;
+    return client;
+  }
+
   protected initializeContents(containerElement: HTMLElement) {
+    super.initializeContents(containerElement);
     this.changeUiVisiblitiy(false);
     this.inscriptionContext = this.initInscriptionContext();
     this.queryClient = initQueryClient();
-    this.inscriptionClient = this.startInscriptionClient();
-    this.root = createRoot(containerElement);
+    this.inscriptionClient = this.startInscriptionClient().then(client => this.resolveInscriptionClient(client));
   }
 
-  private updateInscriptionUi() {
-    if (!this.inscriptionElement) {
+  protected render(): React.ReactNode {
+    const element = this.inscriptionElement;
+    if (!element) {
       return;
     }
-    const element = this.inscriptionElement;
-    this.inscriptionClient?.then(client => {
-      this.root.render(
-        <React.StrictMode>
-          <ClientContextProvider client={client}>
-            <QueryProvider client={this.queryClient}>
-              <InscriptionView
-                app={this.inscriptionContext.app}
-                pmv={this.inscriptionContext.pmv}
-                pid={element}
-                outline={{
-                  selection: this.selectionService.getSelectedElementIDs()[0],
-                  onClick: id => this.selectFromOutline(id)
-                }}
-              />
-            </QueryProvider>
-          </ClientContextProvider>
-        </React.StrictMode>
-      );
-    });
+    if (!this.resolvedInscriptionClient) {
+      this.inscriptionClient?.then(() => this.update());
+      return;
+    }
+    return (
+      <ClientContextProvider client={this.resolvedInscriptionClient}>
+        <QueryProvider client={this.queryClient}>
+          <InscriptionView
+            app={this.inscriptionContext.app}
+            pmv={this.inscriptionContext.pmv}
+            pid={element}
+            outline={{
+              selection: this.selectionService.getSelectedElementIDs()[0],
+              onClick: id => this.selectFromOutline(id)
+            }}
+          />
+        </QueryProvider>
+      </ClientContextProvider>
+    );
   }
 
   async startInscriptionClient(): Promise<InscriptionClientJsonRpc> {
@@ -122,7 +126,7 @@ export class InscriptionUi extends GLSPAbstractUIExtension implements IActionHan
 
   private async startInscriptionWebSocketClient(webSocketAddress: string) {
     const initInscription = async (connection: Connection) => {
-      this.inscriptionClient = InscriptionClientJsonRpc.startClient(connection);
+      this.inscriptionClient = InscriptionClientJsonRpc.startClient(connection).then(client => this.resolveInscriptionClient(client));
       return this.inscriptionClient;
     };
     const reconnectInscription = async (connection: Connection, oldClient: InscriptionClientJsonRpc) => {
@@ -148,7 +152,7 @@ export class InscriptionUi extends GLSPAbstractUIExtension implements IActionHan
     if (ToggleInscriptionAction.is(action)) {
       if (!this.inscriptionElement) {
         this.inscriptionElement = this.selectionService.getModelRoot().id;
-        this.updateInscriptionUi();
+        this.update();
       }
       this.changeUiVisiblitiy(action.force);
     }
@@ -156,7 +160,7 @@ export class InscriptionUi extends GLSPAbstractUIExtension implements IActionHan
       this.changeUiVisiblitiy(true);
     }
     if (SwitchThemeAction.is(action)) {
-      this.updateInscriptionUi();
+      this.update();
       MonacoEditorUtil.setTheme(action.theme);
     }
     return;
@@ -195,7 +199,7 @@ export class InscriptionUi extends GLSPAbstractUIExtension implements IActionHan
         this.changeUiVisiblitiy(false);
       }
     }
-    this.updateInscriptionUi();
+    this.update();
   }
 
   private isOutlineOpen() {

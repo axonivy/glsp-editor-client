@@ -8,3 +8,4 @@ npm unpublish "@axonivy/process-editor-inscription-core@${1}" --registry $REGIST
 npm unpublish "@axonivy/process-editor-inscription-protocol@${1}" --registry $REGISTRY
 npm unpublish "@axonivy/process-editor-inscription-view@${1}" --registry $REGISTRY
 npm unpublish "@axonivy/process-editor-protocol@${1}" --registry $REGISTRY
+npm unpublish "@axonivy/process-editor-view@${1}" --registry $REGISTRY

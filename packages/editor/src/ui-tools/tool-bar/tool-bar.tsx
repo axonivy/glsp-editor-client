@@ -1,8 +1,6 @@
 import {
-  GLSPAbstractUIExtension,
   Action,
   DisposableCollection,
-  EditorContextService,
   EnableDefaultToolsAction,
   EnableToolPaletteAction,
   type IActionHandler,
@@ -18,16 +16,12 @@ import {
 } from '@eclipse-glsp/client';
 import { inject, injectable, multiInject, postConstruct } from 'inversify';
 
-import { IvyIcons } from '@axonivy/ui-icons';
 import { IVY_TYPES } from '../../types';
-import { createElement, createIcon } from '../../utils/ui-utils';
 import type { Menu } from '../menu/menu';
 import {
   DefaultSelectButton,
   MarqueeToolButton,
   RedoToolButton,
-  type ToolBarButton,
-  ToolBarButtonLocation,
   type ToolBarButtonProvider,
   UndoToolButton,
   compareButtons
@@ -36,22 +30,21 @@ import { ShowToolBarOptionsMenuAction } from './options/action';
 import { ToolBarOptionsMenu } from './options/options-menu-ui';
 import { ShowToolBarMenuAction, ToolBarMenu } from './tool-bar-menu';
 import { UpdatePaletteItems } from '@axonivy/process-editor-protocol';
-
-const CLICKED_CSS_CLASS = 'clicked';
+import { ReactUIExtension } from '../../utils/react-ui-extension';
+import { SModelRootImpl } from 'sprotty';
+import React from 'react';
+import { type ToolBarButtonClickEvent, default as ToolBarComponent } from './ToolBar';
+import { ToolBarButtonLocation, type ToolBarButton } from '@axonivy/process-editor-view';
 
 @injectable()
-export class ToolBar extends GLSPAbstractUIExtension implements IActionHandler, IEditModeListener, ISelectionListener {
+export class ToolBar extends ReactUIExtension implements IActionHandler, IEditModeListener, ISelectionListener {
   static readonly ID = 'ivy-tool-bar';
 
   @inject(TYPES.IActionDispatcher) protected readonly actionDispatcher: IActionDispatcher;
   @inject(SelectionService) protected readonly selectionService: SelectionService;
-  @inject(EditorContextService) protected readonly editorContext: EditorContextService;
   @multiInject(IVY_TYPES.ToolBarButtonProvider) protected toolBarButtonProvider: ToolBarButtonProvider[];
 
-  protected lastActivebutton?: HTMLElement;
-  protected defaultToolsButton?: HTMLElement;
-  protected toggleCustomIconsButton: HTMLElement;
-  protected verticalAlignButton: HTMLElement;
+  protected lastButtonClickEvent?: ToolBarButtonClickEvent;
   protected lastMenuAction?: string;
   protected toolBarMenu?: Menu;
 
@@ -72,12 +65,12 @@ export class ToolBar extends GLSPAbstractUIExtension implements IActionHandler, 
   }
 
   protected initializeContents(containerElement: HTMLElement) {
-    this.createHeader();
-    this.lastActivebutton = this.defaultToolsButton;
+    super.initializeContents(containerElement);
     containerElement.onwheel = ev => (ev.ctrlKey ? ev.preventDefault() : true);
   }
 
-  protected onBeforeShow() {
+  protected onBeforeShow(containerElement: HTMLElement, root: Readonly<SModelRootImpl>, ...contextElementIds: string[]): void {
+    super.onBeforeShow(containerElement, root, ...contextElementIds);
     this.toDisposeOnHide.push(this.selectionService.onSelectionChanged(() => this.selectionChanged()));
   }
 
@@ -86,83 +79,31 @@ export class ToolBar extends GLSPAbstractUIExtension implements IActionHandler, 
     this.toDisposeOnHide.dispose();
   }
 
-  protected createHeader(): void {
-    const headerCompartment = createElement('div', ['tool-bar-header']);
-    headerCompartment.appendChild(this.createLeftButtons());
-    headerCompartment.appendChild(this.createMiddleButtons());
-    headerCompartment.appendChild(this.createRightButtons());
-    this.containerElement.innerHTML = '';
-    this.containerElement.appendChild(headerCompartment);
-    this.changeActiveButton();
+  protected render(): React.ReactNode {
+    return (
+      <ToolBarComponent
+        activeButtonId={this.lastButtonClickEvent?.source.id ?? DefaultSelectButton.id}
+        left={[DefaultSelectButton, MarqueeToolButton, ...this.getProvidedToolBarButtons(ToolBarButtonLocation.Left)]}
+        edit={this.editorContext.isReadonly ? [] : [UndoToolButton, RedoToolButton]}
+        middle={this.getProvidedToolBarButtons(ToolBarButtonLocation.Middle)}
+        right={this.getProvidedToolBarButtons(ToolBarButtonLocation.Right)}
+        onClick={evt => {
+          this.dispatchAction([evt.action]);
+          if (evt.source.switchFocus) {
+            this.changeActiveButton(evt);
+          }
+        }}
+      />
+    );
   }
 
-  private createLeftButtons(): HTMLElement {
-    const leftButtons = createElement('div', ['left-buttons']);
-
-    this.defaultToolsButton = this.createToolButton(DefaultSelectButton);
-    leftButtons.appendChild(this.defaultToolsButton);
-    leftButtons.appendChild(this.createToolButton(MarqueeToolButton));
-
-    if (!this.editorContext.isReadonly) {
-      const editPart = createElement('div', ['edit-buttons']);
-      editPart.appendChild(this.createToolButton(UndoToolButton));
-      editPart.appendChild(this.createToolButton(RedoToolButton));
-      leftButtons.appendChild(editPart);
-    }
-    return leftButtons;
-  }
-
-  private createMiddleButtons(): HTMLElement {
-    const middleButtons = createElement('div', ['middle-buttons']);
-    this.appendProvidedButtons(middleButtons, ToolBarButtonLocation.Middle);
-    return middleButtons;
-  }
-
-  private createRightButtons(): HTMLElement {
-    const rightButtons = createElement('div', ['right-buttons']);
-    this.appendProvidedButtons(rightButtons, ToolBarButtonLocation.Right);
-    return rightButtons;
-  }
-
-  private appendProvidedButtons(parent: HTMLElement, location: ToolBarButtonLocation): void {
-    this.toolBarButtonProvider
+  protected getProvidedToolBarButtons(location: ToolBarButtonLocation): ToolBarButton[] {
+    return this.toolBarButtonProvider
       .map(provider => provider.button())
       .filter(isNotUndefined)
       .filter(button => button.location === location)
       .filter(button => !this.editorContext.isReadonly || button.readonly)
-      .sort(compareButtons)
-      .forEach(button => parent.appendChild(this.createToolButton(button)));
-  }
-
-  private createToolButton(toolBarButton: ToolBarButton): HTMLElement {
-    const button = createElement('button', ['tool-bar-button']);
-    button.appendChild(createIcon(toolBarButton.icon));
-    button.title = toolBarButton.title;
-    if (toolBarButton.id) {
-      button.id = toolBarButton.id;
-    }
-    button.onclick = () => {
-      this.dispatchAction([toolBarButton.action()]);
-      if (toolBarButton.switchFocus) {
-        this.changeActiveButton(button);
-      }
-    };
-    return this.createTitleToolButton(button, toolBarButton);
-  }
-
-  public createTitleToolButton(button: HTMLElement, toolBarButton: ToolBarButton): HTMLElement {
-    if (toolBarButton.showTitle) {
-      const titleButton = createElement('span', ['tool-bar-title-button']);
-      const title = document.createElement('label');
-      title.textContent = toolBarButton.title;
-      if (!toolBarButton.isNotMenu) {
-        button.appendChild(createIcon(IvyIcons.Chevron));
-      }
-      titleButton.appendChild(title);
-      titleButton.appendChild(button);
-      return titleButton;
-    }
-    return button;
+      .sort(compareButtons);
   }
 
   private dispatchAction(actions: Action[]): void {
@@ -185,7 +126,7 @@ export class ToolBar extends GLSPAbstractUIExtension implements IActionHandler, 
     }
     if (UpdatePaletteItems.is(action)) {
       if (this.containerElement) {
-        this.createHeader();
+        this.update();
       }
     }
     return;
@@ -196,9 +137,9 @@ export class ToolBar extends GLSPAbstractUIExtension implements IActionHandler, 
     if (items.length !== 0 && action.id !== this.lastMenuAction) {
       this.toolBarMenu = new ToolBarMenu(this.actionDispatcher, action, items);
       const menu = this.toolBarMenu.create(this.containerElement);
-      if (this.lastActivebutton) {
+      if (this.lastButtonClickEvent?.reference) {
         const menuRight = menu.offsetLeft + menu.offsetWidth;
-        const buttonCenter = this.lastActivebutton.offsetLeft + this.lastActivebutton.offsetWidth / 2;
+        const buttonCenter = this.lastButtonClickEvent.reference.offsetLeft + this.lastButtonClickEvent.reference.offsetWidth / 2;
         menu.style.setProperty('--menu-arrow-pos', `${menuRight - buttonCenter - 6}px`);
       }
       this.setLastMenuAction(action.id);
@@ -225,15 +166,10 @@ export class ToolBar extends GLSPAbstractUIExtension implements IActionHandler, 
     this.lastMenuAction = id;
   }
 
-  changeActiveButton(button?: HTMLElement): void {
-    this.lastActivebutton?.classList.remove(CLICKED_CSS_CLASS);
-    let activeButton = this.defaultToolsButton;
-    if (button) {
-      activeButton = button;
-    }
-    activeButton?.classList.add(CLICKED_CSS_CLASS);
-    this.lastActivebutton = activeButton;
+  changeActiveButton(evt?: ToolBarButtonClickEvent): void {
+    this.lastButtonClickEvent = evt;
     this.hideMenus();
+    this.update();
   }
 
   hideMenus(): void {
@@ -243,7 +179,7 @@ export class ToolBar extends GLSPAbstractUIExtension implements IActionHandler, 
 
   editModeChanged(): void {
     if (this.containerElement) {
-      this.createHeader();
+      this.changeActiveButton();
     }
   }
 
